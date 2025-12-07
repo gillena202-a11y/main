@@ -1,288 +1,223 @@
-const queueList = document.getElementById('queue-list');
-const queueEmpty = document.getElementById('queue-empty');
-const queueCount = document.getElementById('queue-count');
-const filterEls = {
-  name: document.getElementById('filter-name'),
-  price: document.getElementById('filter-price'),
-  ovr: document.getElementById('filter-ovr'),
-  window: document.getElementById('filter-window'),
-  position: document.getElementById('filter-position'),
-  team: document.getElementById('filter-team'),
-};
-const refreshButton = document.getElementById('refresh');
-const clearFilters = document.getElementById('clear-filters');
-const autoToggle = document.getElementById('toggle-auto');
-const planner = document.getElementById('planner');
-const autoStatus = document.getElementById('auto-status');
-const nextTarget = document.getElementById('next-target');
-const countScheduled = document.getElementById('count-scheduled');
-const countWindow = document.getElementById('count-window');
-const countAutosnipe = document.getElementById('count-autosnipe');
-const countInside = document.getElementById('count-inside');
-const countManual = document.getElementById('count-manual');
-const activityList = document.getElementById('activity-list');
+const playerNameEl = document.getElementById('player-name');
+const playerAgeEl = document.getElementById('player-age');
+const playerBranchEl = document.getElementById('player-branch');
+const playerRankEl = document.getElementById('player-rank');
+const playerExpEl = document.getElementById('player-exp');
+const playerFinancesEl = document.getElementById('player-finances');
+const playerHealthEl = document.getElementById('player-health');
+const playerHappinessEl = document.getElementById('player-happiness');
+const playerMoraleEl = document.getElementById('player-morale');
+const branchButtons = Array.from(document.querySelectorAll('.branch'));
+const actionButtons = Array.from(document.querySelectorAll('.action'));
+const logList = document.getElementById('log');
+const statusPill = document.getElementById('game-status');
+const restartBtn = document.getElementById('restart');
+const actionHint = document.getElementById('action-hint');
+const tabs = Array.from(document.querySelectorAll('.tab'));
+const panels = Array.from(document.querySelectorAll('.tab-panel'));
 
-let autoEnabled = false;
-let targets = [
-  {
-    id: crypto.randomUUID(),
-    name: 'Patrick Mahomes',
-    position: 'QB',
-    team: 'Chiefs',
-    ovr: 92,
-    price: 42000,
-    window: 20,
-    timeLeft: 48,
-    notes: 'Gunslinger archetype, Kansas City chemistry.',
-    autosnipe: true,
-  },
-  {
-    id: crypto.randomUUID(),
-    name: 'Micah Parsons',
-    position: 'EDGE',
-    team: 'Cowboys',
-    ovr: 93,
-    price: 51500,
-    window: 25,
-    timeLeft: 32,
-    notes: 'Lurker + Edge Threat elite combo.',
-    autosnipe: true,
-  },
-  {
-    id: crypto.randomUUID(),
-    name: 'Justin Jefferson',
-    position: 'WR',
-    team: 'Vikings',
-    ovr: 94,
-    price: 58000,
-    window: 30,
-    timeLeft: 76,
-    notes: 'Slot-O-Matic + Route Tech on 1 AP build.',
-    autosnipe: false,
-  },
-];
-
-let activityLog = [
-  { label: 'Queue seeded with priority targets', time: 'Just now', tone: 'info' },
-  { label: 'Auto-snipe standing by — enable to arm bids', time: 'Ready', tone: 'warn' },
-];
-
-const statuses = {
-  ready: 'Inside your snipe window',
-  waiting: 'Watching until window hits',
-  closed: 'Expired or over bid cap',
+const rankLadders = {
+  Army: ['Private', 'Private First Class', 'Specialist', 'Sergeant', 'Staff Sergeant', 'Sergeant First Class'],
+  Navy: ['Seaman Recruit', 'Seaman Apprentice', 'Petty Officer', 'Petty Officer First Class', 'Chief Petty Officer', 'Senior Chief'],
+  'Air Force': ['Airman Basic', 'Airman', 'Senior Airman', 'Staff Sergeant', 'Technical Sergeant', 'Master Sergeant'],
+  'Marine Corps': ['Private', 'Private First Class', 'Lance Corporal', 'Corporal', 'Sergeant', 'Staff Sergeant'],
+  'Space Force': ['Specialist 1', 'Specialist 2', 'Specialist 3', 'Sergeant', 'Technical Sergeant', 'Master Sergeant'],
+  'Coast Guard': ['Seaman Recruit', 'Seaman', 'Petty Officer', 'Petty Officer First Class', 'Chief Petty Officer', 'Senior Chief'],
 };
 
-function fmtCoins(value) {
-  return `${value.toLocaleString()} coins`;
+const actionOutcomes = {
+  train: {
+    text: 'You crush morning PT, earning respect from your unit.',
+    exp: [8, 12],
+    morale: [-5, 2],
+    happiness: [-3, 4],
+    health: [0, 0],
+    finances: [40, 60],
+  },
+  mission: {
+    text: 'You deploy on a tough assignment and see real-world action.',
+    exp: [15, 30],
+    morale: [-10, 10],
+    happiness: [-12, 8],
+    health: [-15, 5],
+    finances: [120, 200],
+  },
+  study: {
+    text: 'You attend leadership school, sharpening your command voice.',
+    exp: [10, 18],
+    morale: [0, 5],
+    happiness: [0, 6],
+    health: [0, 0],
+    finances: [60, 90],
+  },
+  rest: {
+    text: 'You take a breather, reconnect with family, and reset.',
+    exp: [0, 4],
+    morale: [8, 15],
+    happiness: [10, 18],
+    health: [5, 12],
+    finances: [-20, 10],
+  },
+  sideGig: {
+    text: 'You pick up a weekend side gig, earning cash but tiring yourself out.',
+    exp: [4, 8],
+    morale: [-4, 2],
+    happiness: [-6, 4],
+    health: [-8, 2],
+    finances: [180, 260],
+  },
+};
+
+const initialState = () => ({
+  name: 'Cadet',
+  age: 18,
+  branch: null,
+  exp: 0,
+  morale: 100,
+  happiness: 100,
+  health: 100,
+  finances: 500,
+  rankIndex: -1,
+  log: [
+    'You are 18 and ready to serve. Choose a branch to begin your story.',
+    'A small enlistment bonus of $500 helps you settle in.',
+  ],
+});
+
+let state = initialState();
+
+function randInRange([min, max]) {
+  return Math.floor(Math.random() * (max - min + 1)) + min;
 }
 
-function renderRow(target) {
-  const { content } = document.getElementById('target-row').cloneNode(true);
-  const row = content.querySelector('.list-row');
-  row.dataset.id = target.id;
-  row.querySelector('.ovr').textContent = target.ovr;
-  row.querySelector('.name').textContent = target.name;
-  row.querySelector('.meta').textContent = `${target.position} · ${target.team}`;
-  row.querySelector('.notes').textContent = target.notes || 'No notes added yet.';
-  row.querySelector('.price').textContent = fmtCoins(target.price);
-  row.querySelector('.remaining').textContent = `${Math.max(0, target.timeLeft)}s`;
-  row.querySelector('.bar span').style.width = `${Math.min(100, (target.timeLeft / 90) * 100)}%`;
-
-  const cta = row.querySelector('.cta');
-  const button = row.querySelector('button');
-  const status = row.querySelector('.status');
-  const insideWindow = target.timeLeft <= target.window;
-
-  if (target.timeLeft <= 0) {
-    status.textContent = statuses.closed;
-    status.classList.add('status-closed');
-    button.disabled = true;
-    button.textContent = 'Expired';
-  } else if (insideWindow) {
-    status.textContent = statuses.ready;
-    status.classList.add('status-ready');
-    button.textContent = 'Place snipe';
-  } else {
-    status.textContent = `${statuses.waiting} (${target.window}s)`;
-    status.classList.add('status-wait');
-    button.textContent = 'Arm snipe';
-  }
-
-  button.addEventListener('click', () => handleSnipe(target.id));
-  cta.appendChild(button);
-  return row;
+function formatMoney(amount) {
+  return `$${amount.toLocaleString('en-US')}`;
 }
 
-function applyFilters(list) {
-  const name = filterEls.name.value.trim().toLowerCase();
-  const price = Number(filterEls.price.value || Infinity);
-  const ovr = Number(filterEls.ovr.value || 0);
-  const position = filterEls.position.value;
-  const team = filterEls.team.value;
-  const window = Number(filterEls.window.value || 0);
-
-  return list.filter((target) => {
-    const matchesName = !name || target.name.toLowerCase().includes(name);
-    const matchesPrice = !filterEls.price.value || target.price <= price;
-    const matchesOvr = target.ovr >= ovr;
-    const matchesPosition = !position || target.position === position;
-    const matchesTeam = !team || target.team === team;
-    const matchesWindow = !window || target.timeLeft <= window;
-    return matchesName && matchesPrice && matchesOvr && matchesPosition && matchesTeam && matchesWindow;
-  });
-}
-
-function renderQueue() {
-  const filtered = applyFilters(targets);
-  queueList.innerHTML = '';
-  if (!filtered.length) {
-    queueEmpty.style.display = 'block';
-    queueCount.textContent = '0 items';
-    return;
-  }
-  queueEmpty.style.display = 'none';
-  queueCount.textContent = `${filtered.length} item${filtered.length === 1 ? '' : 's'}`;
-  filtered
-    .sort((a, b) => a.timeLeft - b.timeLeft)
-    .forEach((target) => queueList.appendChild(renderRow(target)));
-  updateDashboard(filtered);
-}
-
-function tickTimers() {
-  targets = targets.map((t) => ({ ...t, timeLeft: Math.max(0, t.timeLeft - 1) }));
-  if (autoEnabled) {
-    autoSnipe();
-  }
-  renderQueue();
-}
-
-function handleSnipe(id) {
-  targets = targets.map((t) => (t.id === id ? { ...t, status: 'sniped', timeLeft: 0 } : t));
-  addActivity('Manual snipe placed', 'success');
-  renderQueue();
-}
-
-function autoSnipe() {
-  const windowLimit = Number(filterEls.window.value || 30);
-  const priceLimit = Number(filterEls.price.value || Infinity);
-  targets = targets.map((t) => {
-    const eligible = t.autosnipe && t.timeLeft <= windowLimit && t.price <= priceLimit;
-    if (eligible) {
-      return { ...t, status: 'sniped', timeLeft: 0 };
-    }
-    return t;
-  });
-}
-
-function seedFromPlanner(data) {
-  targets = [
-    {
-      id: crypto.randomUUID(),
-      timeLeft: Math.max(10, Number(data.window) + 10),
-      price: Number(data.maxPrice),
-      notes: data.notes,
-      name: data.name,
-      position: data.position,
-      team: 'Custom',
-      ovr: Number(data.ovr),
-      window: Number(data.window),
-      autosnipe: data.autosnipe,
-    },
-    ...targets,
-  ];
-  addActivity(`Added ${data.name} to the queue`, 'info');
-  renderQueue();
-}
-
-function resetFilters() {
-  Object.values(filterEls).forEach((input) => {
-    if ('value' in input) input.value = '';
-  });
-  filterEls.window.value = 30;
-  renderQueue();
-}
-
-function addActivity(label, tone = 'info') {
-  activityLog = [
-    { label, time: 'Just now', tone },
-    ...activityLog.map((entry, index) => ({
-      ...entry,
-      time: index === 0 ? 'Moments ago' : entry.time,
-    })),
-  ].slice(0, 6);
-  renderActivity();
-}
-
-function renderActivity() {
-  if (!activityList) return;
-  activityList.innerHTML = '';
-  activityLog.forEach((entry) => {
-    const item = document.createElement('li');
-    const label = document.createElement('span');
-    const time = document.createElement('span');
-
-    label.textContent = entry.label;
-    label.className = `label ${entry.tone ? `tone-${entry.tone}` : ''}`;
-    time.textContent = entry.time;
-    time.className = 'time';
-
-    item.appendChild(label);
-    item.appendChild(time);
-    activityList.appendChild(item);
-  });
-}
-
-function updateDashboard(filteredList) {
-  const openTargets = targets.filter((t) => t.timeLeft > 0);
-  const insideWindow = openTargets.filter((t) => t.timeLeft <= t.window);
-  const autosnipeReady = openTargets.filter((t) => t.autosnipe);
-  const manualOnly = openTargets.filter((t) => !t.autosnipe);
-  const soonest = openTargets.sort((a, b) => a.timeLeft - b.timeLeft)[0];
-
-  if (autoStatus) {
-    autoStatus.textContent = autoEnabled ? 'Enabled' : 'Disabled';
-    autoStatus.classList.toggle('status-pulse', autoEnabled);
-  }
-  if (nextTarget) {
-    nextTarget.textContent = soonest ? `${soonest.name} in ${soonest.timeLeft}s` : 'No targets yet';
-  }
-  if (countScheduled) countScheduled.textContent = targets.length;
-  if (countWindow) countWindow.textContent = insideWindow.length;
-  if (countAutosnipe) countAutosnipe.textContent = autosnipeReady.length;
-  if (countInside) countInside.textContent = insideWindow.length;
-  if (countManual) countManual.textContent = manualOnly.length;
-
-  if (filteredList && !filteredList.length && nextTarget) {
-    nextTarget.textContent = 'No visible targets';
+function appendLog(entry) {
+  const item = document.createElement('li');
+  item.textContent = entry;
+  logList.prepend(item);
+  while (logList.children.length > 12) {
+    logList.removeChild(logList.lastChild);
   }
 }
 
-function wireEvents() {
-  refreshButton?.addEventListener('click', () => {
-    targets = targets.map((t) => ({ ...t, timeLeft: t.timeLeft + 45 }));
-    renderQueue();
+function updateProfile() {
+  playerNameEl.textContent = state.name;
+  playerAgeEl.textContent = `${state.age}`;
+  playerBranchEl.textContent = state.branch ?? 'Undecided';
+  playerRankEl.textContent = state.branch ? rankLadders[state.branch][Math.max(state.rankIndex, 0)] : 'N/A';
+  playerExpEl.textContent = `${state.exp} XP`;
+  playerFinancesEl.textContent = formatMoney(Math.max(0, state.finances));
+  playerHealthEl.textContent = `${Math.max(0, Math.min(120, state.health))}%`;
+  playerHappinessEl.textContent = `${Math.max(0, Math.min(120, state.happiness))}%`;
+  playerMoraleEl.textContent = `${Math.max(0, Math.min(120, state.morale))}%`;
+  statusPill.textContent = state.branch ? 'Active duty' : 'Awaiting enlistment';
+  statusPill.classList.toggle('ghost', !state.branch);
+  statusPill.classList.toggle('success', Boolean(state.branch));
+
+  const actionsUnlocked = Boolean(state.branch);
+  actionButtons.forEach((btn) => {
+    btn.disabled = !actionsUnlocked;
+    btn.classList.toggle('disabled', !actionsUnlocked);
   });
-  clearFilters?.addEventListener('click', resetFilters);
-  Object.values(filterEls).forEach((input) => input?.addEventListener('input', renderQueue));
-  planner?.addEventListener('submit', (event) => {
-    event.preventDefault();
-    const data = Object.fromEntries(new FormData(planner));
-    data.autosnipe = Boolean(planner.elements.autosnipe.checked);
-    seedFromPlanner(data);
-    planner.reset();
+  actionHint.textContent = actionsUnlocked
+    ? 'Actions consume time, affect your finances, and can promote you.'
+    : 'Pick a branch to unlock actions.';
+}
+
+function handleBranchSelect(branch) {
+  if (state.branch) return;
+  state.branch = branch;
+  state.rankIndex = 0;
+  appendLog(`You enlist in the ${branch} as a ${rankLadders[branch][0]}.`);
+  updateProfile();
+}
+
+function evaluatePromotion() {
+  const ladder = rankLadders[state.branch];
+  const thresholds = [0, 20, 45, 75, 110, 150];
+  const nextIndex = thresholds.findIndex((threshold) => state.exp < threshold) - 1;
+  const targetIndex = Math.min(ladder.length - 1, Math.max(nextIndex, state.rankIndex));
+
+  if (targetIndex > state.rankIndex) {
+    state.rankIndex = targetIndex;
+    const newRank = ladder[targetIndex];
+    const bonus = 200 + targetIndex * 75;
+    state.finances += bonus;
+    appendLog(`Promotion! You are now a ${newRank} and receive a $${bonus} bonus.`);
+  }
+}
+
+function ageUp() {
+  if (state.exp % 35 === 0) {
+    state.age += 1;
+  }
+}
+
+function clampStats() {
+  state.morale = Math.max(0, Math.min(130, state.morale));
+  state.happiness = Math.max(0, Math.min(130, state.happiness));
+  state.health = Math.max(0, Math.min(130, state.health));
+}
+
+function handleAction(actionKey) {
+  if (!state.branch) return;
+  const outcome = actionOutcomes[actionKey];
+  const expGain = randInRange(outcome.exp);
+  const moraleChange = randInRange(outcome.morale);
+  const happinessChange = randInRange(outcome.happiness);
+  const healthChange = randInRange(outcome.health);
+  const financeChange = randInRange(outcome.finances);
+
+  state.exp += expGain;
+  state.morale += moraleChange;
+  state.happiness += happinessChange;
+  state.health += healthChange;
+  state.finances += financeChange;
+  clampStats();
+  ageUp();
+
+  const result = `${outcome.text} (+${expGain} XP, ${moraleChange >= 0 ? '+' : ''}${moraleChange} morale, ${happinessChange >= 0 ? '+' : ''}${happinessChange} happiness, ${healthChange >= 0 ? '+' : ''}${healthChange} health, ${financeChange >= 0 ? '+' : ''}${formatMoney(financeChange)}).`;
+  appendLog(result);
+  evaluatePromotion();
+  updateProfile();
+}
+
+function resetGame() {
+  state = initialState();
+  logList.innerHTML = '';
+  state.log.forEach((entry) => appendLog(entry));
+  updateProfile();
+}
+
+function handleTabChange(tabName) {
+  tabs.forEach((tab) => {
+    const isActive = tab.dataset.tab === tabName;
+    tab.classList.toggle('active', isActive);
+    tab.setAttribute('aria-selected', isActive ? 'true' : 'false');
   });
-  autoToggle?.addEventListener('click', () => {
-    autoEnabled = !autoEnabled;
-    autoToggle.textContent = autoEnabled ? 'Auto-snipe enabled' : 'Enable auto-snipe';
-    autoToggle.classList.toggle('primary', !autoEnabled);
-    autoToggle.classList.toggle('ghost', autoEnabled);
-    addActivity(autoEnabled ? 'Auto-snipe armed' : 'Auto-snipe disabled', autoEnabled ? 'success' : 'warn');
-    updateDashboard();
+
+  panels.forEach((panel) => {
+    const isActive = panel.dataset.tabPanel === tabName;
+    panel.classList.toggle('active', isActive);
+    panel.setAttribute('aria-hidden', isActive ? 'false' : 'true');
   });
 }
 
-renderQueue();
-wireEvents();
-renderActivity();
-setInterval(tickTimers, 1000);
+branchButtons.forEach((button) => {
+  button.addEventListener('click', () => handleBranchSelect(button.dataset.branch));
+});
+
+actionButtons.forEach((button) => {
+  button.addEventListener('click', () => handleAction(button.dataset.action));
+});
+
+restartBtn.addEventListener('click', resetGame);
+
+tabs.forEach((tab) => {
+  tab.addEventListener('click', () => handleTabChange(tab.dataset.tab));
+});
+
+resetGame();

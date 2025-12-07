@@ -3,255 +3,132 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>MUT 26 Snipe Station</title>
+  <title>Armed Forces Career Story</title>
   <link rel="stylesheet" href="styles.css" />
 </head>
 <body>
   <header class="app-header">
     <div>
-      <p class="eyebrow">MUT 26 Control Room</p>
-      <h1>Auction Snipe Station</h1>
-      <p class="lede">Monitor, filter, and schedule snipe attempts before listings expire.</p>
+      <p class="eyebrow">Interactive fiction</p>
+      <h1>Boots on the Ground</h1>
+      <p class="lede">Start as an 18 year old recruit, choose a U.S. armed forces branch, and climb the ranks through choices you make.</p>
     </div>
-    <div class="actions">
-      <button id="refresh" class="ghost">Refresh feed</button>
-      <button id="toggle-auto" class="primary">Enable auto-snipe</button>
+    <div class="header-meta">
+      <div class="pill">Text-based</div>
+      <div class="pill ghost" id="game-status">Awaiting enlistment</div>
     </div>
   </header>
 
-  <div class="hero">
-    <div>
-      <p class="eyebrow">Home overview</p>
-      <h2>Keep your snipe station healthy at a glance</h2>
-      <p class="lede">
-        Review automation status, upcoming expirations, and your active filters before diving into
-        the queue.
-      </p>
-      <div class="quick-actions" role="group" aria-label="Quick actions">
-        <button class="primary">Start new scan</button>
-        <button class="ghost">View sales tracker</button>
-        <button class="ghost">Export watchlist</button>
-      </div>
-    </div>
-    <div class="pillars" aria-label="System snapshot">
-      <div class="pillar">
-        <p class="eyebrow">Auto-snipe</p>
-        <h3 id="auto-status" class="status-pulse">Disabled</h3>
-        <p>Toggle automation to let the bot place bids inside your configured window.</p>
-      </div>
-      <div class="pillar">
-        <p class="eyebrow">Next expiration</p>
-        <h3 id="next-target">No targets yet</h3>
-        <p>We surface the soonest listing so you can prep your manual bid early.</p>
-      </div>
-      <div class="pillar">
-        <p class="eyebrow">Queue health</p>
-        <h3><span id="count-scheduled">0</span> targets</h3>
-        <p><span id="count-window">0</span> listings currently inside their snipe window.</p>
-      </div>
-    </div>
-  </div>
-
-  <nav class="tabs" aria-label="Primary">
-    <button class="tab active" data-tab="dashboard">Home</button>
-    <button class="tab" data-tab="snipes">Auction snipes</button>
-    <button class="tab" data-tab="sales">Sales tracker</button>
-  </nav>
-
-  <main>
-    <section class="status-grid" aria-label="System insights">
-      <article class="card status-card">
-        <div class="status-card__header">
-          <div>
-            <p class="eyebrow">Runbook</p>
-            <h3>Daily health check</h3>
-          </div>
-          <span class="pill success">Operational</span>
-        </div>
-        <ul class="checklist">
-          <li><span>Market data connected</span><span class="pill success">Live</span></li>
-          <li><span>Budget guardrails</span><span class="pill info">75k cap</span></li>
-          <li><span>Notifications</span><span class="pill info">Push + Email</span></li>
-          <li><span>Risk profile</span><span class="pill warn">Manual review</span></li>
-        </ul>
-      </article>
-      <article class="card status-card">
-        <div class="status-card__header">
-          <div>
-            <p class="eyebrow">Signals</p>
-            <h3>Watchlist momentum</h3>
-          </div>
-          <span class="pill info">Live</span>
-        </div>
-        <div class="signal-grid">
-          <div>
-            <p class="eyebrow">Autosnipe ready</p>
-            <p class="stat" id="count-autosnipe">0</p>
-            <p class="muted">Targets marked for automation.</p>
-          </div>
-          <div>
-            <p class="eyebrow">Inside window</p>
-            <p class="stat" id="count-inside">0</p>
-            <p class="muted">Listings nearing expiration.</p>
-          </div>
-          <div>
-            <p class="eyebrow">Manual only</p>
-            <p class="stat" id="count-manual">0</p>
-            <p class="muted">Require human confirmation.</p>
-          </div>
-        </div>
-      </article>
-      <article class="card activity" aria-labelledby="activity-title">
-        <div class="card-header">
-          <div>
-            <p class="eyebrow">Activity</p>
-            <h3 id="activity-title">Live feed</h3>
-          </div>
-          <span class="pill info">Real-time</span>
-        </div>
-        <ul id="activity-list" class="activity-list" aria-live="polite"></ul>
-      </article>
-    </section>
-
-    <section class="card filters" aria-labelledby="filters-title">
+  <main class="layout">
+    <section class="card" aria-labelledby="tabs-title">
       <div class="card-header">
         <div>
-          <p class="eyebrow">Search filters</p>
-          <h2 id="filters-title">Dial in the listings you want to snipe</h2>
+          <p class="eyebrow">Career hub</p>
+          <h2 id="tabs-title">Choose a view</h2>
         </div>
-        <button id="clear-filters" class="ghost">Clear</button>
+        <button id="restart" class="ghost">Restart</button>
       </div>
-      <div class="filter-grid">
-        <label>
-          Item name
-          <input id="filter-name" type="text" placeholder="e.g. Patrick Mahomes" />
-        </label>
-        <label>
-          Max BIN
-          <input id="filter-price" type="number" min="0" step="1000" placeholder="35000" />
-        </label>
-        <label>
-          Minimum OVR
-          <input id="filter-ovr" type="number" min="60" max="99" step="1" placeholder="85" />
-        </label>
-        <label>
-          Time window (sec)
-          <input id="filter-window" type="number" min="0" step="5" value="30" />
-        </label>
-        <label>
-          Position
-          <select id="filter-position">
-            <option value="">Any</option>
-            <option value="QB">QB</option>
-            <option value="HB">HB</option>
-            <option value="WR">WR</option>
-            <option value="TE">TE</option>
-            <option value="CB">CB</option>
-            <option value="MLB">MLB</option>
-            <option value="LT">LT</option>
-            <option value="RE">RE</option>
-          </select>
-        </label>
-        <label>
-          Team chem
-          <select id="filter-team">
-            <option value="">Any</option>
-            <option>Chiefs</option>
-            <option>Eagles</option>
-            <option>49ers</option>
-            <option>Ravens</option>
-            <option>Steelers</option>
-            <option>Cowboys</option>
-          </select>
-        </label>
+      <div class="tab-list" role="tablist" aria-label="Career views">
+        <button class="tab active" role="tab" aria-selected="true" data-tab="profile">Profile</button>
+        <button class="tab" role="tab" aria-selected="false" data-tab="actions">Actions</button>
+        <button class="tab" role="tab" aria-selected="false" data-tab="log">Log</button>
       </div>
-    </section>
-
-    <section class="layout">
-      <section class="card" aria-labelledby="targets-title">
-        <div class="card-header">
-          <div>
-            <p class="eyebrow">Snipe queue</p>
-            <h2 id="targets-title">Targets ready for a last-second bid</h2>
+      <div class="tab-panels">
+        <div class="tab-panel active" data-tab-panel="profile" role="tabpanel">
+          <div class="profile-grid">
+            <div>
+              <p class="label">Name</p>
+              <p id="player-name" class="stat">Cadet</p>
+            </div>
+            <div>
+              <p class="label">Age</p>
+              <p id="player-age" class="stat">18</p>
+            </div>
+            <div>
+              <p class="label">Branch</p>
+              <p id="player-branch" class="stat">Undecided</p>
+            </div>
+            <div>
+              <p class="label">Rank</p>
+              <p id="player-rank" class="stat">N/A</p>
+            </div>
+            <div>
+              <p class="label">Experience</p>
+              <p id="player-exp" class="stat">0 XP</p>
+            </div>
+            <div>
+              <p class="label">Finances</p>
+              <p id="player-finances" class="stat">$0</p>
+            </div>
+            <div>
+              <p class="label">Health</p>
+              <p id="player-health" class="stat">100%</p>
+            </div>
+            <div>
+              <p class="label">Happiness</p>
+              <p id="player-happiness" class="stat">100%</p>
+            </div>
+            <div>
+              <p class="label">Morale</p>
+              <p id="player-morale" class="stat">100%</p>
+            </div>
           </div>
-          <p class="chip" id="queue-count">0 items</p>
+          <p class="muted">Track your stats as you serve. Health, happiness, and morale can rise or fall based on your decisions, while finances grow with pay and bonuses.</p>
         </div>
-        <div id="queue-empty" class="empty">No targets match your filters yet.</div>
-        <div id="queue-list" class="list" role="list"></div>
-      </section>
 
-      <section class="card" aria-labelledby="planner-title">
-        <div class="card-header">
-          <div>
-            <p class="eyebrow">Planner</p>
-            <h2 id="planner-title">Add a snipe target</h2>
+        <div class="tab-panel" data-tab-panel="actions" role="tabpanel" aria-hidden="true">
+          <div class="subgrid">
+            <div class="card-inner" aria-labelledby="branch-title">
+              <div class="card-header inline">
+                <div>
+                  <p class="eyebrow">Branch selection</p>
+                  <h3 id="branch-title">Enlist with a branch</h3>
+                </div>
+              </div>
+              <div class="branch-grid" role="group" aria-label="Branches">
+                <button class="branch" data-branch="Army">Army</button>
+                <button class="branch" data-branch="Navy">Navy</button>
+                <button class="branch" data-branch="Air Force">Air Force</button>
+                <button class="branch" data-branch="Marine Corps">Marine Corps</button>
+                <button class="branch" data-branch="Space Force">Space Force</button>
+                <button class="branch" data-branch="Coast Guard">Coast Guard</button>
+              </div>
+              <p class="muted">Choose once to lock your career path. Each branch has unique rank names and promotions.</p>
+            </div>
+
+            <div class="card-inner" aria-labelledby="actions-title">
+              <div class="card-header inline">
+                <div>
+                  <p class="eyebrow">Orders</p>
+                  <h3 id="actions-title">Select your next move</h3>
+                </div>
+              </div>
+              <div class="actions-grid">
+                <button class="primary action" data-action="train">Train hard</button>
+                <button class="ghost action" data-action="mission">Volunteer for a mission</button>
+                <button class="ghost action" data-action="study">Attend leadership school</button>
+                <button class="ghost action" data-action="rest">Rest and recover</button>
+                <button class="ghost action" data-action="sideGig">Pick up a side gig</button>
+              </div>
+              <p class="muted" id="action-hint">Pick a branch to unlock actions.</p>
+            </div>
           </div>
         </div>
-        <form id="planner" class="planner">
-          <label>
-            Player name
-            <input name="name" type="text" required placeholder="Player or item name" />
-          </label>
-          <label>
-            Position
-            <select name="position" required>
-              <option value="QB">QB</option>
-              <option value="HB">HB</option>
-              <option value="WR">WR</option>
-              <option value="CB">CB</option>
-              <option value="EDGE">EDGE</option>
-              <option value="DT">DT</option>
-            </select>
-          </label>
-          <label>
-            Overall
-            <input name="ovr" type="number" min="60" max="99" value="90" required />
-          </label>
-          <label>
-            Max snipe bid
-            <input name="maxPrice" type="number" min="0" step="500" value="40000" required />
-          </label>
-          <label>
-            Time cushion (sec)
-            <input name="window" type="number" min="5" step="5" value="20" required />
-          </label>
-          <label>
-            Notes
-            <textarea name="notes" rows="3" placeholder="Chemistry, ability, or playstyle details"></textarea>
-          </label>
-          <div class="row">
-            <label class="checkbox">
-              <input name="autosnipe" type="checkbox" checked />
-              Auto-place bid when inside window
-            </label>
-            <button class="primary" type="submit">Add target</button>
+
+        <div class="tab-panel" data-tab-panel="log" role="tabpanel" aria-hidden="true">
+          <div class="card-inner" aria-labelledby="log-title">
+            <div class="card-header inline">
+              <div>
+                <p class="eyebrow">Career log</p>
+                <h3 id="log-title">Narrative feed</h3>
+              </div>
+            </div>
+            <ul id="log" class="log" aria-live="polite"></ul>
           </div>
-        </form>
-      </section>
+        </div>
+      </div>
     </section>
   </main>
-
-  <template id="target-row">
-    <article class="list-row" role="listitem">
-      <div class="badge">OVR <span class="ovr"></span></div>
-      <div class="details">
-        <p class="name"></p>
-        <p class="meta"></p>
-        <p class="notes"></p>
-      </div>
-      <div class="metrics">
-        <p class="price"></p>
-        <div class="timer" role="timer">
-          <div class="bar"><span></span></div>
-          <p><span class="remaining"></span> left</p>
-        </div>
-      </div>
-      <div class="cta">
-        <p class="status"></p>
-        <button class="ghost snipe">Snipe now</button>
-      </div>
-    </article>
-  </template>
 
   <script src="app.js"></script>
 </body>
