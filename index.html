@@ -1,0 +1,171 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>MUT 26 Snipe Station</title>
+  <link rel="stylesheet" href="styles.css" />
+</head>
+<body>
+  <header class="app-header">
+    <div>
+      <p class="eyebrow">MUT 26 Control Room</p>
+      <h1>Auction Snipe Station</h1>
+      <p class="lede">Monitor, filter, and schedule snipe attempts before listings expire.</p>
+    </div>
+    <div class="actions">
+      <button id="refresh" class="ghost">Refresh feed</button>
+      <button id="toggle-auto" class="primary">Enable auto-snipe</button>
+    </div>
+  </header>
+
+  <nav class="tabs" aria-label="Primary">
+    <button class="tab" data-tab="dashboard">Dashboard</button>
+    <button class="tab active" data-tab="snipes">Auction snipes</button>
+    <button class="tab" data-tab="sales">Sales tracker</button>
+  </nav>
+
+  <main>
+    <section class="card filters" aria-labelledby="filters-title">
+      <div class="card-header">
+        <div>
+          <p class="eyebrow">Search filters</p>
+          <h2 id="filters-title">Dial in the listings you want to snipe</h2>
+        </div>
+        <button id="clear-filters" class="ghost">Clear</button>
+      </div>
+      <div class="filter-grid">
+        <label>
+          Item name
+          <input id="filter-name" type="text" placeholder="e.g. Patrick Mahomes" />
+        </label>
+        <label>
+          Max BIN
+          <input id="filter-price" type="number" min="0" step="1000" placeholder="35000" />
+        </label>
+        <label>
+          Minimum OVR
+          <input id="filter-ovr" type="number" min="60" max="99" step="1" placeholder="85" />
+        </label>
+        <label>
+          Time window (sec)
+          <input id="filter-window" type="number" min="0" step="5" value="30" />
+        </label>
+        <label>
+          Position
+          <select id="filter-position">
+            <option value="">Any</option>
+            <option value="QB">QB</option>
+            <option value="HB">HB</option>
+            <option value="WR">WR</option>
+            <option value="TE">TE</option>
+            <option value="CB">CB</option>
+            <option value="MLB">MLB</option>
+            <option value="LT">LT</option>
+            <option value="RE">RE</option>
+          </select>
+        </label>
+        <label>
+          Team chem
+          <select id="filter-team">
+            <option value="">Any</option>
+            <option>Chiefs</option>
+            <option>Eagles</option>
+            <option>49ers</option>
+            <option>Ravens</option>
+            <option>Steelers</option>
+            <option>Cowboys</option>
+          </select>
+        </label>
+      </div>
+    </section>
+
+    <section class="layout">
+      <section class="card" aria-labelledby="targets-title">
+        <div class="card-header">
+          <div>
+            <p class="eyebrow">Snipe queue</p>
+            <h2 id="targets-title">Targets ready for a last-second bid</h2>
+          </div>
+          <p class="chip" id="queue-count">0 items</p>
+        </div>
+        <div id="queue-empty" class="empty">No targets match your filters yet.</div>
+        <div id="queue-list" class="list" role="list"></div>
+      </section>
+
+      <section class="card" aria-labelledby="planner-title">
+        <div class="card-header">
+          <div>
+            <p class="eyebrow">Planner</p>
+            <h2 id="planner-title">Add a snipe target</h2>
+          </div>
+        </div>
+        <form id="planner" class="planner">
+          <label>
+            Player name
+            <input name="name" type="text" required placeholder="Player or item name" />
+          </label>
+          <label>
+            Position
+            <select name="position" required>
+              <option value="QB">QB</option>
+              <option value="HB">HB</option>
+              <option value="WR">WR</option>
+              <option value="CB">CB</option>
+              <option value="EDGE">EDGE</option>
+              <option value="DT">DT</option>
+            </select>
+          </label>
+          <label>
+            Overall
+            <input name="ovr" type="number" min="60" max="99" value="90" required />
+          </label>
+          <label>
+            Max snipe bid
+            <input name="maxPrice" type="number" min="0" step="500" value="40000" required />
+          </label>
+          <label>
+            Time cushion (sec)
+            <input name="window" type="number" min="5" step="5" value="20" required />
+          </label>
+          <label>
+            Notes
+            <textarea name="notes" rows="3" placeholder="Chemistry, ability, or playstyle details"></textarea>
+          </label>
+          <div class="row">
+            <label class="checkbox">
+              <input name="autosnipe" type="checkbox" checked />
+              Auto-place bid when inside window
+            </label>
+            <button class="primary" type="submit">Add target</button>
+          </div>
+        </form>
+      </section>
+    </section>
+  </main>
+
+  <template id="target-row">
+    <article class="list-row" role="listitem">
+      <div class="badge">OVR <span class="ovr"></span></div>
+      <div class="details">
+        <p class="name"></p>
+        <p class="meta"></p>
+        <p class="notes"></p>
+      </div>
+      <div class="metrics">
+        <p class="price"></p>
+        <div class="timer" role="timer">
+          <div class="bar"><span></span></div>
+          <p><span class="remaining"></span> left</p>
+        </div>
+      </div>
+      <div class="cta">
+        <p class="status"></p>
+        <button class="ghost snipe">Snipe now</button>
+      </div>
+    </article>
+  </template>
+
+  <script src="app.js"></script>
+</body>
+</html>
