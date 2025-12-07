@@ -1,3 +1,4 @@
+const AUCTION_FEED_URL = 'mut26-board.json';
 const queueList = document.getElementById('queue-list');
 const queueEmpty = document.getElementById('queue-empty');
 const queueCount = document.getElementById('queue-count');
@@ -13,45 +14,63 @@ const refreshButton = document.getElementById('refresh');
 const clearFilters = document.getElementById('clear-filters');
 const autoToggle = document.getElementById('toggle-auto');
 const planner = document.getElementById('planner');
+const autoStatus = document.getElementById('auto-status');
+const nextTarget = document.getElementById('next-target');
+const countScheduled = document.getElementById('count-scheduled');
+const countWindow = document.getElementById('count-window');
+const countAutosnipe = document.getElementById('count-autosnipe');
+const countInside = document.getElementById('count-inside');
+const countManual = document.getElementById('count-manual');
+const activityList = document.getElementById('activity-list');
+const connectionPill = document.getElementById('connection-pill');
+const lastSync = document.getElementById('last-sync');
+const listingCount = document.getElementById('listing-count');
+const feedSource = document.getElementById('feed-source');
 
 let autoEnabled = false;
-let targets = [
+let targets = [];
+const fallbackTargets = [
   {
     id: crypto.randomUUID(),
-    name: 'Patrick Mahomes',
+    name: 'Joe Burrow',
     position: 'QB',
-    team: 'Chiefs',
-    ovr: 92,
-    price: 42000,
-    window: 20,
-    timeLeft: 48,
-    notes: 'Gunslinger archetype, Kansas City chemistry.',
-    autosnipe: true,
-  },
-  {
-    id: crypto.randomUUID(),
-    name: 'Micah Parsons',
-    position: 'EDGE',
-    team: 'Cowboys',
-    ovr: 93,
-    price: 51500,
-    window: 25,
-    timeLeft: 32,
-    notes: 'Lurker + Edge Threat elite combo.',
-    autosnipe: true,
-  },
-  {
-    id: crypto.randomUUID(),
-    name: 'Justin Jefferson',
-    position: 'WR',
-    team: 'Vikings',
+    team: 'Bengals',
     ovr: 94,
-    price: 58000,
+    price: 61500,
+    window: 25,
+    timeLeft: 52,
+    notes: 'Field General with Hot Route Master and set feet lead.',
+    autosnipe: true,
+  },
+  {
+    id: crypto.randomUUID(),
+    name: 'Sauce Gardner',
+    position: 'CB',
+    team: 'Jets',
+    ovr: 95,
+    price: 68500,
     window: 30,
-    timeLeft: 76,
-    notes: 'Slot-O-Matic + Route Tech on 1 AP build.',
+    timeLeft: 41,
+    notes: '6’3 shutdown corner, Acrobat + Pick Artist stack.',
+    autosnipe: true,
+  },
+  {
+    id: crypto.randomUUID(),
+    name: 'Christian McCaffrey',
+    position: 'HB',
+    team: '49ers',
+    ovr: 96,
+    price: 70250,
+    window: 30,
+    timeLeft: 66,
+    notes: 'Elusive back with Backfield Master and Hurdle specialist.',
     autosnipe: false,
   },
+];
+
+let activityLog = [
+  { label: 'Queue seeded with priority targets', time: 'Just now', tone: 'info' },
+  { label: 'Auto-snipe standing by — enable to arm bids', time: 'Ready', tone: 'warn' },
 ];
 
 const statuses = {
@@ -122,6 +141,7 @@ function applyFilters(list) {
 
 function renderQueue() {
   const filtered = applyFilters(targets);
+  updateDashboard(filtered);
   queueList.innerHTML = '';
   if (!filtered.length) {
     queueEmpty.style.display = 'block';
@@ -135,6 +155,66 @@ function renderQueue() {
     .forEach((target) => queueList.appendChild(renderRow(target)));
 }
 
+function updateConnectionState(state) {
+  if (connectionPill) {
+    connectionPill.textContent = state.connected ? 'Live' : 'Offline';
+    connectionPill.className = `pill ${state.connected ? 'success' : 'warn'}`;
+  }
+  if (feedSource) {
+    feedSource.textContent = state.source || 'Unknown feed';
+    feedSource.className = `pill ${state.connected ? 'info' : ''}`;
+  }
+  if (listingCount) {
+    listingCount.textContent = `${state.count ?? 0}`;
+  }
+  if (lastSync) {
+    const stamp = state.syncedAt ? new Date(state.syncedAt) : new Date();
+    lastSync.textContent = state.connected ? stamp.toLocaleTimeString() : 'Pending';
+  }
+}
+
+function mapListing(listing) {
+  return {
+    id: crypto.randomUUID(),
+    name: listing.name,
+    position: listing.position || 'N/A',
+    team: listing.team || listing.chemistry || 'Unknown',
+    ovr: Number(listing.ovr ?? listing.rating ?? 0),
+    price: Number(listing.bin ?? listing.price ?? 0),
+    window: Number(listing.window ?? 25),
+    timeLeft: Number(listing.expiresIn ?? listing.timeLeft ?? 60),
+    notes: listing.notes || listing.program || 'Live auction listing',
+    autosnipe: listing.autosnipe ?? true,
+  };
+}
+
+async function loadBoard(showToast = false) {
+  try {
+    const response = await fetch(`${AUCTION_FEED_URL}?_=${Date.now()}`, { cache: 'no-store' });
+    if (!response.ok) throw new Error(`Feed returned ${response.status}`);
+    const payload = await response.json();
+    const listings = Array.isArray(payload.listings) ? payload.listings : payload;
+    targets = listings.map(mapListing);
+    updateConnectionState({
+      connected: true,
+      count: listings.length,
+      source: payload.source || 'MUT 26 auction board',
+      syncedAt: payload.syncedAt || Date.now(),
+    });
+    if (showToast) addActivity('Synced with MUT 26 auction board', 'success');
+  } catch (error) {
+    console.error('Failed to reach live board, using snapshot', error);
+    targets = fallbackTargets;
+    updateConnectionState({
+      connected: false,
+      count: targets.length,
+      source: 'Local snapshot',
+    });
+    if (showToast) addActivity('Fell back to local board snapshot', 'warn');
+  }
+  renderQueue();
+}
+
 function tickTimers() {
   targets = targets.map((t) => ({ ...t, timeLeft: Math.max(0, t.timeLeft - 1) }));
   if (autoEnabled) {
@@ -145,6 +225,7 @@ function tickTimers() {
 
 function handleSnipe(id) {
   targets = targets.map((t) => (t.id === id ? { ...t, status: 'sniped', timeLeft: 0 } : t));
+  addActivity('Manual snipe placed', 'success');
   renderQueue();
 }
 
@@ -176,6 +257,7 @@ function seedFromPlanner(data) {
     },
     ...targets,
   ];
+  addActivity(`Added ${data.name} to the queue`, 'info');
   renderQueue();
 }
 
@@ -187,11 +269,63 @@ function resetFilters() {
   renderQueue();
 }
 
-function wireEvents() {
-  refreshButton?.addEventListener('click', () => {
-    targets = targets.map((t) => ({ ...t, timeLeft: t.timeLeft + 45 }));
-    renderQueue();
+function addActivity(label, tone = 'info') {
+  activityLog = [
+    { label, time: 'Just now', tone },
+    ...activityLog.map((entry, index) => ({
+      ...entry,
+      time: index === 0 ? 'Moments ago' : entry.time,
+    })),
+  ].slice(0, 6);
+  renderActivity();
+}
+
+function renderActivity() {
+  if (!activityList) return;
+  activityList.innerHTML = '';
+  activityLog.forEach((entry) => {
+    const item = document.createElement('li');
+    const label = document.createElement('span');
+    const time = document.createElement('span');
+
+    label.textContent = entry.label;
+    label.className = `label ${entry.tone ? `tone-${entry.tone}` : ''}`;
+    time.textContent = entry.time;
+    time.className = 'time';
+
+    item.appendChild(label);
+    item.appendChild(time);
+    activityList.appendChild(item);
   });
+}
+
+function updateDashboard(filteredList) {
+  const openTargets = targets.filter((t) => t.timeLeft > 0);
+  const insideWindow = openTargets.filter((t) => t.timeLeft <= t.window);
+  const autosnipeReady = openTargets.filter((t) => t.autosnipe);
+  const manualOnly = openTargets.filter((t) => !t.autosnipe);
+  const soonest = openTargets.sort((a, b) => a.timeLeft - b.timeLeft)[0];
+
+  if (autoStatus) {
+    autoStatus.textContent = autoEnabled ? 'Enabled' : 'Disabled';
+    autoStatus.classList.toggle('status-pulse', autoEnabled);
+  }
+  if (nextTarget) {
+    nextTarget.textContent = soonest ? `${soonest.name} in ${soonest.timeLeft}s` : 'No targets yet';
+  }
+  if (countScheduled) countScheduled.textContent = targets.length;
+  if (countWindow) countWindow.textContent = insideWindow.length;
+  if (countAutosnipe) countAutosnipe.textContent = autosnipeReady.length;
+  if (countInside) countInside.textContent = insideWindow.length;
+  if (countManual) countManual.textContent = manualOnly.length;
+
+  if (filteredList && !filteredList.length && nextTarget) {
+    nextTarget.textContent = 'No visible targets';
+  }
+}
+
+function wireEvents() {
+  refreshButton?.addEventListener('click', () => loadBoard(true));
   clearFilters?.addEventListener('click', resetFilters);
   Object.values(filterEls).forEach((input) => input?.addEventListener('input', renderQueue));
   planner?.addEventListener('submit', (event) => {
@@ -206,9 +340,12 @@ function wireEvents() {
     autoToggle.textContent = autoEnabled ? 'Auto-snipe enabled' : 'Enable auto-snipe';
     autoToggle.classList.toggle('primary', !autoEnabled);
     autoToggle.classList.toggle('ghost', autoEnabled);
+    addActivity(autoEnabled ? 'Auto-snipe armed' : 'Auto-snipe disabled', autoEnabled ? 'success' : 'warn');
+    updateDashboard();
   });
 }
 
-renderQueue();
 wireEvents();
+renderActivity();
+loadBoard();
 setInterval(tickTimers, 1000);

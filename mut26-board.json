@@ -1,0 +1,50 @@
+{
+  "source": "MUT 26 live board snapshot",
+  "syncedAt": "2025-02-12T15:30:00Z",
+  "listings": [
+    {
+      "name": "Patrick Mahomes",
+      "position": "QB",
+      "team": "Chiefs",
+      "ovr": 96,
+      "bin": 74500,
+      "expiresIn": 58,
+      "window": 28,
+      "notes": "Ultimate Kickoff, Gunslinger + Pass Lead Elite",
+      "autosnipe": true
+    },
+    {
+      "name": "Micah Parsons",
+      "position": "EDGE",
+      "team": "Cowboys",
+      "ovr": 95,
+      "bin": 69900,
+      "expiresIn": 72,
+      "window": 32,
+      "notes": "Harvest, Edge Threat Elite + Lurker",
+      "autosnipe": true
+    },
+    {
+      "name": "Justin Jefferson",
+      "position": "WR",
+      "team": "Vikings",
+      "ovr": 95,
+      "bin": 68850,
+      "expiresIn": 44,
+      "window": 26,
+      "notes": "Most Feared, Route Tech + Slot-O-Matic",
+      "autosnipe": false
+    },
+    {
+      "name": "Brian Dawkins",
+      "position": "FS",
+      "team": "Eagles",
+      "ovr": 96,
+      "bin": 73500,
+      "expiresIn": 65,
+      "window": 30,
+      "notes": "Legends, Deep Out Zone KO",
+      "autosnipe": true
+    }
+  ]
+}

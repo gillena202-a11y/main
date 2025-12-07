@@ -1,6 +1,6 @@
 # MUT 26 Auction Snipe Station
 
-A lightweight prototype tab for tracking and planning MUT 26 auction snipes. The interface runs entirely client-side—open `index.html` in a browser to explore filters, timers, and the planner form for adding new targets.
+A lightweight prototype tab for tracking and planning MUT 26 auction snipes. The interface now syncs against a MUT 26 auction board feed (with a bundled snapshot fallback) and runs entirely client-side—open `index.html` in a browser to explore filters, timers, and the planner form for adding new targets.
 
 ## Features
 - Search and filter live-looking listings by name, BIN, overall rating, position, team chemistry, and time window.
