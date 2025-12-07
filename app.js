@@ -13,6 +13,14 @@ const refreshButton = document.getElementById('refresh');
 const clearFilters = document.getElementById('clear-filters');
 const autoToggle = document.getElementById('toggle-auto');
 const planner = document.getElementById('planner');
+const autoStatus = document.getElementById('auto-status');
+const nextTarget = document.getElementById('next-target');
+const countScheduled = document.getElementById('count-scheduled');
+const countWindow = document.getElementById('count-window');
+const countAutosnipe = document.getElementById('count-autosnipe');
+const countInside = document.getElementById('count-inside');
+const countManual = document.getElementById('count-manual');
+const activityList = document.getElementById('activity-list');
 
 let autoEnabled = false;
 let targets = [
@@ -52,6 +60,11 @@ let targets = [
     notes: 'Slot-O-Matic + Route Tech on 1 AP build.',
     autosnipe: false,
   },
+];
+
+let activityLog = [
+  { label: 'Queue seeded with priority targets', time: 'Just now', tone: 'info' },
+  { label: 'Auto-snipe standing by — enable to arm bids', time: 'Ready', tone: 'warn' },
 ];
 
 const statuses = {
@@ -133,6 +146,7 @@ function renderQueue() {
   filtered
     .sort((a, b) => a.timeLeft - b.timeLeft)
     .forEach((target) => queueList.appendChild(renderRow(target)));
+  updateDashboard(filtered);
 }
 
 function tickTimers() {
@@ -145,6 +159,7 @@ function tickTimers() {
 
 function handleSnipe(id) {
   targets = targets.map((t) => (t.id === id ? { ...t, status: 'sniped', timeLeft: 0 } : t));
+  addActivity('Manual snipe placed', 'success');
   renderQueue();
 }
 
@@ -176,6 +191,7 @@ function seedFromPlanner(data) {
     },
     ...targets,
   ];
+  addActivity(`Added ${data.name} to the queue`, 'info');
   renderQueue();
 }
 
@@ -185,6 +201,61 @@ function resetFilters() {
   });
   filterEls.window.value = 30;
   renderQueue();
+}
+
+function addActivity(label, tone = 'info') {
+  activityLog = [
+    { label, time: 'Just now', tone },
+    ...activityLog.map((entry, index) => ({
+      ...entry,
+      time: index === 0 ? 'Moments ago' : entry.time,
+    })),
+  ].slice(0, 6);
+  renderActivity();
+}
+
+function renderActivity() {
+  if (!activityList) return;
+  activityList.innerHTML = '';
+  activityLog.forEach((entry) => {
+    const item = document.createElement('li');
+    const label = document.createElement('span');
+    const time = document.createElement('span');
+
+    label.textContent = entry.label;
+    label.className = `label ${entry.tone ? `tone-${entry.tone}` : ''}`;
+    time.textContent = entry.time;
+    time.className = 'time';
+
+    item.appendChild(label);
+    item.appendChild(time);
+    activityList.appendChild(item);
+  });
+}
+
+function updateDashboard(filteredList) {
+  const openTargets = targets.filter((t) => t.timeLeft > 0);
+  const insideWindow = openTargets.filter((t) => t.timeLeft <= t.window);
+  const autosnipeReady = openTargets.filter((t) => t.autosnipe);
+  const manualOnly = openTargets.filter((t) => !t.autosnipe);
+  const soonest = openTargets.sort((a, b) => a.timeLeft - b.timeLeft)[0];
+
+  if (autoStatus) {
+    autoStatus.textContent = autoEnabled ? 'Enabled' : 'Disabled';
+    autoStatus.classList.toggle('status-pulse', autoEnabled);
+  }
+  if (nextTarget) {
+    nextTarget.textContent = soonest ? `${soonest.name} in ${soonest.timeLeft}s` : 'No targets yet';
+  }
+  if (countScheduled) countScheduled.textContent = targets.length;
+  if (countWindow) countWindow.textContent = insideWindow.length;
+  if (countAutosnipe) countAutosnipe.textContent = autosnipeReady.length;
+  if (countInside) countInside.textContent = insideWindow.length;
+  if (countManual) countManual.textContent = manualOnly.length;
+
+  if (filteredList && !filteredList.length && nextTarget) {
+    nextTarget.textContent = 'No visible targets';
+  }
 }
 
 function wireEvents() {
@@ -206,9 +277,12 @@ function wireEvents() {
     autoToggle.textContent = autoEnabled ? 'Auto-snipe enabled' : 'Enable auto-snipe';
     autoToggle.classList.toggle('primary', !autoEnabled);
     autoToggle.classList.toggle('ghost', autoEnabled);
+    addActivity(autoEnabled ? 'Auto-snipe armed' : 'Auto-snipe disabled', autoEnabled ? 'success' : 'warn');
+    updateDashboard();
   });
 }
 
 renderQueue();
 wireEvents();
+renderActivity();
 setInterval(tickTimers, 1000);
